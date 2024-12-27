@@ -1,9 +1,6 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
 }
@@ -12,3 +9,95 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model User {
+  id                     String                  @id @default(cuid())
+  email                  String                  @unique
+  password               String
+  role                   UserRole
+  name                   String?
+  company                Company?                @relation(fields: [companyId], references: [id])
+  companyId              String?
+  assignedAdmin          User?                   @relation("UserToAdmin", fields: [assignedAdminId], references: [id])
+  assignedAdminId        String?
+  assignedUsers          User[]                  @relation("UserToAdmin")
+  productSourcingRequests ProductSourcingRequest[]
+  sampleRequests         SampleRequest[]
+  createdAt              DateTime                @default(now())
+  updatedAt              DateTime                @updatedAt
+}
+
+enum UserRole {
+  USER
+  ADMIN
+  MASTER
+}
+
+model Company {
+  id      String  @id @default(cuid())
+  name    String  @unique
+  logoUrl String?
+  users   User[]
+}
+
+model ProductSourcingRequest {
+  id               String   @id @default(cuid())
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String
+  productName      String
+  productCategory  String
+  productCode      String?
+  productDescription String
+  images           String[] // URLs of uploaded images
+  printSize        String
+  printType        String
+  moqTiers         MOQTier[]
+  notes            String?
+  status           RequestStatus @default(PENDING)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model MOQTier {
+  id                      String                @id @default(cuid())
+  quantity                Int
+  price                   Float?
+  productSourcingRequest  ProductSourcingRequest @relation(fields: [productSourcingRequestId], references: [id])
+  productSourcingRequestId String
+}
+
+model SampleRequest {
+  id               String   @id @default(cuid())
+  user             User     @relation(fields: [userId], references: [id])
+  userId           String
+  type             SampleType
+  productCode      String
+  productName      String
+  productColor     String
+  instructions     String?
+  artworkUrl       String?
+  printSize        String
+  printType        String
+  printColors      String[]
+  orderDate        DateTime @default(now())
+  shipDate         DateTime?
+  trackingLink     String?
+  status           RequestStatus @default(PENDING)
+  proofImageUrl    String?
+  isUrgent         Boolean  @default(false)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+enum SampleType {
+  BRANDED
+  UNBRANDED
+}
+
+enum RequestStatus {
+  PENDING
+  IN_PROCESS
+  COMPLETED
+  SHIPPED
+}
+
